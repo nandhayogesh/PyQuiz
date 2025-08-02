@@ -7,7 +7,13 @@ import {
   Brain,
   Loader2
 } from "lucide-react";
-import { Category, apiService } from "@/services/api";
+
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  question_count: number;
+}
 
 interface CategoryWithUI extends Category {
   icon: React.ComponentType<any>;
@@ -18,6 +24,34 @@ interface CategoryWithUI extends Category {
 interface CategorySelectorProps {
   onSelectCategory: (categoryId: string) => void;
 }
+
+// Fallback categories data
+const fallbackCategories: Category[] = [
+  {
+    id: 'python',
+    name: 'Python Programming',
+    description: 'Test your Python knowledge',
+    question_count: 5
+  },
+  {
+    id: 'algorithms',
+    name: 'Algorithms & Data Structures',
+    description: 'Master algorithms and data structures',
+    question_count: 5
+  },
+  {
+    id: 'web',
+    name: 'Web Development',
+    description: 'HTML, CSS, JavaScript and more',
+    question_count: 5
+  },
+  {
+    id: 'databases',
+    name: 'Database Systems',
+    description: 'SQL and database concepts',
+    question_count: 5
+  }
+];
 
 export const CategorySelector = ({ onSelectCategory }: CategorySelectorProps) => {
   const [categories, setCategories] = useState<CategoryWithUI[]>([]);
@@ -30,7 +64,20 @@ export const CategorySelector = ({ onSelectCategory }: CategorySelectorProps) =>
         setIsLoading(true);
         setError(null);
         
-        const apiCategories = await apiService.getCategories();
+        // Try to fetch from API first
+        let apiCategories: Category[] = [];
+        try {
+          const response = await fetch('http://localhost:5000/api/categories');
+          if (response.ok) {
+            apiCategories = await response.json();
+          } else {
+            throw new Error('API not available');
+          }
+        } catch (apiError) {
+          console.warn('API not available, using fallback data:', apiError);
+          // Use fallback data if API is not available
+          apiCategories = fallbackCategories;
+        }
         
         // Map API categories to UI categories with icons and styling
         const uiCategories: CategoryWithUI[] = apiCategories.map(cat => {
@@ -75,7 +122,16 @@ export const CategorySelector = ({ onSelectCategory }: CategorySelectorProps) =>
         
         setCategories(uiCategories);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load categories');
+        console.error('Error loading categories:', err);
+        setError('Failed to load categories. Please try again.');
+        // Even on error, try to use fallback data
+        const uiCategories: CategoryWithUI[] = fallbackCategories.map(cat => ({
+          ...cat,
+          icon: Code,
+          color: "text-primary",
+          difficulty: "Easy" as const,
+        }));
+        setCategories(uiCategories);
       } finally {
         setIsLoading(false);
       }
@@ -112,27 +168,6 @@ export const CategorySelector = ({ onSelectCategory }: CategorySelectorProps) =>
     );
   }
 
-  if (error) {
-    return (
-      <div className="w-full max-w-6xl mx-auto space-y-6 animate-fade-in-scale">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            Choose Your Challenge
-          </h2>
-          <p className="text-destructive">
-            Error loading categories: {error}
-          </p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="mt-4"
-          >
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 animate-fade-in-scale">
       <div className="text-center mb-8">
@@ -142,6 +177,11 @@ export const CategorySelector = ({ onSelectCategory }: CategorySelectorProps) =>
         <p className="text-muted-foreground">
           Select a category to test your knowledge and level up your skills
         </p>
+        {error && (
+          <p className="text-warning text-sm mt-2">
+            ⚠️ Using offline mode - some features may be limited
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

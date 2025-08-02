@@ -4,11 +4,9 @@ import { PyQuizLogo } from "@/components/PyQuizLogo";
 import { CategorySelector } from "@/components/CategorySelector";
 import { QuizGame } from "@/components/QuizGame";
 import { GameOverScreen } from "@/components/GameOverScreen";
-import { GameStats } from "@/components/GameStats";
 import { useQuiz } from "@/hooks/useQuiz";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle } from "lucide-react";
-import heroImage from "@/assets/pyquiz-hero.jpg";
 
 type GameState = "menu" | "category" | "playing" | "complete";
 
@@ -67,15 +65,6 @@ const Index = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-2xl md:text-3xl font-semibold text-muted-foreground">
-                    Test Your Programming Knowledge
-                  </h2>
-                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Challenge yourself with coding questions, earn points, and climb the leaderboards. 
-                    Ready to level up your skills?
-                  </p>
-                </div>
-
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-bounce-in" style={{ animationDelay: "0.5s" }}>
                   <button 
                     onClick={handleStartGame}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Question, apiService, GameSession } from "@/services/api";
+import { Question } from "@/data/quizData";
+import { getRandomQuestions } from "@/data/quizData";
 
 interface QuizState {
   questions: Question[];
@@ -41,11 +42,25 @@ export const useQuiz = (categoryId: string | null) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // Get questions from API
-      const questions = await apiService.getQuestions(category, 10);
+      // Try to get questions from API first, then fallback to local data
+      let questions: Question[] = [];
       
-      // Create game session
-      const session = await apiService.createGameSession(category, questions.length);
+      try {
+        const response = await fetch(`http://localhost:5000/api/questions/${category}?count=10`);
+        if (response.ok) {
+          questions = await response.json();
+          console.log('Loaded questions from API');
+        } else {
+          throw new Error('API not available');
+        }
+      } catch (apiError) {
+        console.warn('API not available, using local data:', apiError);
+        // Use local fallback data
+        questions = getRandomQuestions(category, 10);
+      }
+
+      // Create mock session ID for offline mode
+      const sessionId = Date.now();
       
       setState(prev => ({
         ...prev,
@@ -57,11 +72,12 @@ export const useQuiz = (categoryId: string | null) => {
         isComplete: false,
         streak: 0,
         answers: new Array(questions.length).fill(null),
-        sessionId: session.session_id,
+        sessionId,
         startTime: Date.now(),
         isLoading: false,
       }));
     } catch (error) {
+      console.error('Error starting quiz:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -144,7 +160,7 @@ export const useQuiz = (categoryId: string | null) => {
     });
   }, []);
 
-  // Save results when quiz is complete
+  // Save results when quiz is complete (try API, but don't fail if offline)
   useEffect(() => {
     if (state.isComplete && state.sessionId && state.startTime) {
       const duration = Math.floor((Date.now() - state.startTime) / 1000);
@@ -152,14 +168,43 @@ export const useQuiz = (categoryId: string | null) => {
         ? (state.correctAnswers / state.questions.length) * 100 
         : 0;
 
-      apiService.updateGameSession(state.sessionId, {
+      // Try to save to API, but don't fail if offline
+      try {
+        fetch(`http://localhost:5000/api/game/session/${state.sessionId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            score: state.score,
+            correct_answers: state.correctAnswers,
+            accuracy,
+            duration,
+          }),
+        }).catch(error => {
+          console.warn('Could not save to API (offline mode):', error);
+        });
+      } catch (error) {
+        console.warn('Could not save to API (offline mode):', error);
+      }
+
+      // Save to localStorage as backup
+      const gameResult = {
         score: state.score,
-        correct_answers: state.correctAnswers,
+        correctAnswers: state.correctAnswers,
         accuracy,
         duration,
-      }).catch(error => {
-        console.error('Failed to save game results:', error);
-      });
+        timestamp: Date.now(),
+      };
+      
+      try {
+        const history = JSON.parse(localStorage.getItem('pyquiz-history') || '[]');
+        history.push(gameResult);
+        if (history.length > 10) history.shift(); // Keep only last 10 games
+        localStorage.setItem('pyquiz-history', JSON.stringify(history));
+      } catch (error) {
+        console.warn('Could not save to localStorage:', error);
+      }
     }
   }, [state.isComplete, state.sessionId, state.startTime, state.score, state.correctAnswers, state.questions.length]);
 
