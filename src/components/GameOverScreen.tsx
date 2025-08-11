@@ -62,7 +62,8 @@ export const GameOverScreen = ({
       correctAnswers: `${correctAnswers}/${totalQuestions}`,
       level: Math.floor(score / 1000) + 1,
       date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString()
+      time: new Date().toLocaleTimeString(),
+      appName: 'PyQuiz'
     };
     
     const dataStr = JSON.stringify(results, null, 2);
@@ -72,6 +73,25 @@ export const GameOverScreen = ({
     link.href = url;
     link.download = `pyquiz-results-${Date.now()}.json`;
     link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const shareResults = () => {
+    const shareText = `I just scored ${score} points on PyQuiz with ${accuracy.toFixed(1)}% accuracy! 🎯\n\nCorrect answers: ${correctAnswers}/${totalQuestions}\n\nTest your Python skills too!`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'PyQuiz Results',
+        text: shareText
+      }).catch(err => console.log('Error sharing:', err));
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Results copied to clipboard!');
+      }).catch(() => {
+        alert('Unable to share results');
+      });
+    }
   };
 
   const getPerformanceMessage = () => {
@@ -150,7 +170,7 @@ export const GameOverScreen = ({
               {highScore.toLocaleString()}
             </div>
             <div className="text-lg text-muted-foreground">
-              High Score
+              Best Score
             </div>
           </div>
         </div>
@@ -177,28 +197,28 @@ export const GameOverScreen = ({
           <div className="space-y-3">
             {accuracy >= 90 && (
               <div className="p-3 rounded-xl bg-accent/20 border border-accent/30 animate-slide-up">
-                <div className="font-medium text-accent">Perfect Score!</div>
+                <div className="font-medium text-accent">Python Expert!</div>
                 <div className="text-sm text-muted-foreground">Achieved 90%+ accuracy</div>
               </div>
             )}
             
             {correctAnswers >= 10 && (
               <div className="p-3 rounded-xl bg-success/20 border border-success/30 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-                <div className="font-medium text-success">Double Digits</div>
+                <div className="font-medium text-success">Knowledge Master</div>
                 <div className="text-sm text-muted-foreground">Answered 10+ questions correctly</div>
               </div>
             )}
             
             {score >= 1000 && (
               <div className="p-3 rounded-xl bg-primary/20 border border-primary/30 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                <div className="font-medium text-primary">Score Master</div>
+                <div className="font-medium text-primary">Score Champion</div>
                 <div className="text-sm text-muted-foreground">Reached 1000+ points</div>
               </div>
             )}
 
-            {!accuracy && !correctAnswers && !score && (
+            {accuracy < 60 && correctAnswers < 5 && score < 500 && (
               <div className="p-3 rounded-xl bg-muted/20 border border-muted/30 text-center">
-                <div className="text-muted-foreground">Complete quizzes to unlock achievements!</div>
+                <div className="text-muted-foreground">Complete more quizzes to unlock achievements!</div>
               </div>
             )}
           </div>
@@ -214,7 +234,7 @@ export const GameOverScreen = ({
           className="group"
         >
           <RotateCcw className="w-5 h-5 mr-2 group-hover:rotate-180 transition-transform duration-300" />
-          Play Again
+          Try Again
         </Button>
         
         <Button 
@@ -234,25 +254,17 @@ export const GameOverScreen = ({
           className="group"
         >
           <Download className="w-5 h-5 mr-2 group-hover:translate-y-1 transition-transform duration-300" />
-          Download Results
+          Save Results
         </Button>
         
         <Button 
           variant="neon" 
           size="xl"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: 'PyQuiz Results',
-                text: `I just scored ${score} points on PyQuiz with ${accuracy.toFixed(1)}% accuracy!`,
-                url: window.location.href
-              });
-            }
-          }}
+          onClick={shareResults}
           className="group"
         >
           <Share2 className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-          Share
+          Share Results
         </Button>
       </div>
     </div>
