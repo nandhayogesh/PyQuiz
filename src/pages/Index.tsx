@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuiz } from '../hooks/useQuiz';
 import { CategorySelector } from '../components/CategorySelector';
-import QuizGame from '../components/QuizGame';
-import GameOverScreen from '../components/GameOverScreen';
-import ParticleBackground from '../components/ParticleBackground';
+import { QuizGame } from '../components/QuizGame';
+import { GameOverScreen } from '../components/GameOverScreen';
+import { ParticleBackground } from '../components/ParticleBackground';
 
 const Index: React.FC = () => {
   const {
